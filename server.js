@@ -3,8 +3,10 @@ require('dotenv').config()
 const express = require('express')
 const mongoose = require('mongoose')
 const cors = require('cors')
-
+const path = require("path");
 const app = express()
+app.use(express.static(path.join(__dirname, 'public')))
+
 
 app.use(cors())
 app.use(express.json())
@@ -67,6 +69,10 @@ app.patch('/api/comments/:id/dislike', async (req, res) => {
   res.json(comment)
 })
 
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'))
+})
+
 /* Responder comentario */
 app.post('/api/comments/:id/reply', async (req, res) => {
   const { email, content } = req.body
@@ -81,3 +87,4 @@ app.post('/api/comments/:id/reply', async (req, res) => {
 /* Levantar servidor */
 const PORT = process.env.PORT || 3000
 app.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`))
+
