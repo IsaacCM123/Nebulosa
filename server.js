@@ -21,8 +21,8 @@ mongoose.connect(process.env.MONGO_URI)
 const commentSchema = new mongoose.Schema({
   email: { type: String, required: true },
   content: { type: String, required: true },
-  likes: { type: Number, default: 0 },
-  dislikes: { type: Number, default: 0 },
+  likes:{type:[String],default:[]},
+  dislikes:{type:[String],default:[]},
   replies: [
     {
       email: String,
@@ -50,24 +50,50 @@ app.get('/api/comments', async (req, res) => {
   res.json(comments)
 })
 
-/* Me gusta, No me gusta*/
+/* Logica de Me gusta */
 app.patch('/api/comments/:id/like', async (req, res) => {
-  const comment = await Comment.findByIdAndUpdate(
-    req.params.id,
-    { $inc: { likes: 1 } },
-    { new: true }
-  )
+  const { email } = req.body
+  const comment = await Comment.findById(req.params.id)
+
+  if (!comment) {
+    return res.status(404).json({ message: 'Comentario no encontrado' })
+  }
+
+  // Si ya dio like → no hacer nada
+  if (comment.likes.includes(email)) {
+    return res.status(400).json({ message: 'Ya diste like' })
+  }
+
+  // Si estaba en dislikes → quitar
+  comment.dislikes = comment.dislikes.filter(e => e !== email)
+
+  // Agregar a likes
+  comment.likes.push(email)
+
+  await comment.save()
   res.json(comment)
 })
 
 app.patch('/api/comments/:id/dislike', async (req, res) => {
-  const comment = await Comment.findByIdAndUpdate(
-    req.params.id,
-    { $inc: { dislikes: 1 } },
-    { new: true }
-  )
+  const { email } = req.body
+  const comment = await Comment.findById(req.params.id)
+
+  if (!comment) {
+    return res.status(404).json({ message: 'Comentario no encontrado' })
+  }
+
+  if (comment.dislikes.includes(email)) {
+    return res.status(400).json({ message: 'Ya diste dislike' })
+  }
+
+  comment.likes = comment.likes.filter(e => e !== email)
+  comment.dislikes.push(email)
+
+  await comment.save()
   res.json(comment)
 })
+
+
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
